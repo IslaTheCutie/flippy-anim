@@ -1,4 +1,4 @@
-from .decompress import *
+#from .compress import PyJsHoisted_decompressFromUint8Array_
 
 HEAD = 'flipanim.com project'
 HEAD_VER = '02'
@@ -19,13 +19,25 @@ def load(path: str): #will eventually return a list of FlipAnim layer JSON objec
 	
 	pos += l
 	
+	from os.path import dirname
+	with open(dirname(__file__)+'/decompress.js', 'r') as f:
+		compressJs = f.read()
+	
+	from js2py import EvalJs
+	js = EvalJs({})
+	js.execute(compressJs)
+	
+	import json
+	from js2py.base import PyJsUint8Array
 	out = []
 	while pos < len(data):
 		l = int.from_bytes(data[pos:pos+4], byteorder='little')
 		pos += 4
 		
-		out.append(decompress(data[pos:pos+l]))
-		
+		out.append(json.loads(
+			js.decompressFromUint8Array(
+				PyJsUint8Array(data[pos:pos+l])
+			)
+		))
 		pos += l
 	return out
-
