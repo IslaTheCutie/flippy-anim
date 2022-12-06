@@ -1,9 +1,19 @@
-#from .compress import PyJsHoisted_decompressFromUint8Array_
+from typing import Optional
 
 HEAD = 'flipanim.com project'
 HEAD_VER = '02'
 
-def load(path: str): #will eventually return a list of FlipAnim layer JSON objects
+def load(path: str, startBlock: int=0, endBlock: Optional[int]=None) -> list[Optional[dict]]:
+	"""Decompress and load a FlipAnim project.
+	
+	path - a .flipanim project file
+	start - which compressed data block to start from (default 0)
+	end - which compressed data block to stop at (default None)
+	"""
+	if not end is None:
+		if start > end:
+			raise ValueError('start is after end')
+	
 	with open(path, 'rb') as f:
 		data = f.read()
 	
@@ -30,14 +40,20 @@ def load(path: str): #will eventually return a list of FlipAnim layer JSON objec
 	import json
 	from js2py.base import PyJsUint8Array
 	out = []
+	blockNum = 0
 	while pos < len(data):
 		l = int.from_bytes(data[pos:pos+4], byteorder='little')
 		pos += 4
 		
-		out.append(json.loads(
-			js.decompressFromUint8Array(
-				PyJsUint8Array(data[pos:pos+l])
-			)
-		))
+		if blockNum >= start:
+			out.append(json.loads(
+				js.decompressFromUint8Array(
+					PyJsUint8Array(data[pos:pos+l])
+				)
+			))
+		blockNum += 1
+		if (not end is None) and blockNum >= end:
+			break
+		
 		pos += l
 	return out
