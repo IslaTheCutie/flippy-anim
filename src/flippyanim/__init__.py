@@ -1,4 +1,4 @@
-__all__ = ['load', 'encodeSVG']
+__all__ = ['load', 'loadRaw', 'encodeSVG']
 
-from .load import load
+from .load import load, loadRaw
 from .convert import encodeSVG

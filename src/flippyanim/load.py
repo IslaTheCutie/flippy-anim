@@ -3,8 +3,8 @@ from typing import Optional
 HEAD = 'flipanim.com project'
 HEAD_VER = '02'
 
-def load(path: str, startBlock: int=0, endBlock: Optional[int]=None) -> list[Optional[dict]]:
-	"""Decompress and load a FlipAnim project.
+def loadRaw(path: str, start: int=0, end: Optional[int]=None) -> list[Optional[str]]:
+	"""Decompress and load a FlipAnim project without parsing its JSON strings.
 	
 	path - a .flipanim project file
 	start - which compressed data block to start from (default 0)
@@ -12,7 +12,7 @@ def load(path: str, startBlock: int=0, endBlock: Optional[int]=None) -> list[Opt
 	"""
 	if not end is None:
 		if start > end:
-			raise ValueError('start is after end')
+			raise ValueError('`start` is after `end`')
 	
 	with open(path, 'rb') as f:
 		data = f.read()
@@ -37,7 +37,6 @@ def load(path: str, startBlock: int=0, endBlock: Optional[int]=None) -> list[Opt
 	js = EvalJs({})
 	js.execute(compressJs)
 	
-	import json
 	from js2py.base import PyJsUint8Array
 	out = []
 	blockNum = 0
@@ -46,14 +45,25 @@ def load(path: str, startBlock: int=0, endBlock: Optional[int]=None) -> list[Opt
 		pos += 4
 		
 		if blockNum >= start:
-			out.append(json.loads(
+			out.append(
 				js.decompressFromUint8Array(
 					PyJsUint8Array(data[pos:pos+l])
 				)
-			))
+			)
 		blockNum += 1
 		if (not end is None) and blockNum >= end:
 			break
 		
 		pos += l
 	return out
+
+def load(path: str, start: int=0, end: Optional[int]=None) -> list[Optional[dict]]:
+	"""Decompress and load a FlipAnim project.
+	
+	path - a .flipanim project file
+	start - which compressed data block to start from (default 0)
+	end - which compressed data block to stop at (default None)
+	"""
+	data = loadRaw(path, start, end)
+	import json
+	return [json.loads(item) for item in data]
